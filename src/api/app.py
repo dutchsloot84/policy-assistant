@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import time
@@ -16,6 +17,8 @@ from ..core.chunk import chunk_text
 from ..core.embeddings import EmbeddingService
 from ..core.parse_pdf import extract_text_from_pdf
 from ..core.retrieval import Retriever
+from ..historian import Ledger
+from ..historian.schema import IngestEvent, Marker, QueryEvent, RetrievalHit
 from ..llm.openai_client import OpenAIClient
 from ..store.faiss_store import FaissVectorStore, Metadata
 
@@ -37,6 +40,7 @@ vector_store = FaissVectorStore()
 embedding_service = EmbeddingService()
 retriever = Retriever(vector_store)
 openai_client = OpenAIClient()
+ledger = Ledger()
 
 
 def get_retriever() -> Retriever:
@@ -80,6 +84,18 @@ async def ingest(
 
     vector_store.add(vectors, metadata_items)
     elapsed = time.monotonic() - start
+    duration_ms = int(elapsed * 1000)
+    chunk_count = len(chunks)
+    embed_batches = max(1, chunk_count // 64 + (1 if chunk_count % 64 else 0))
+    ledger.append(
+        IngestEvent(
+            filename=file.filename or "uploaded.pdf",
+            chunks=chunk_count,
+            embed_batches=embed_batches,
+            duration_ms=duration_ms,
+            markers=[Marker(type="Note", text="POC ingest")],
+        ).model_dump()
+    )
     return JSONResponse(
         {
             "chunks": len(chunks),
@@ -95,6 +111,8 @@ async def query(
     embeddings: EmbeddingService = Depends(get_embedding_service),  # noqa: B008
     store_retriever: Retriever = Depends(get_retriever),  # noqa: B008
 ) -> JSONResponse:
+    start = time.monotonic()
+
     query_text = payload.get("query")
     if not query_text:
         raise HTTPException(status_code=400, detail="Query text is required")
@@ -125,4 +143,33 @@ async def query(
         }
         for chunk in results
     ]
+    duration_ms = int((time.monotonic() - start) * 1000)
+    rhits: List[RetrievalHit] = []
+    for chunk in results:
+        hasher = hashlib.sha1()
+        hasher.update(chunk.text.encode("utf-8"))
+        rhits.append(
+            RetrievalHit(
+                source=chunk.source,
+                chunk_id=hasher.hexdigest()[:12],
+                score=chunk.score,
+                preview=chunk.text[:300],
+            )
+        )
+
+    ledger.append(
+        QueryEvent(
+            query=query_text,
+            top_k=len(results),
+            hits=rhits,
+            model=os.getenv("CHAT_MODEL", "gpt-4o-mini"),
+            max_tokens=int(os.getenv("MAX_TOKENS", "300")),
+            temperature=float(os.getenv("TEMPERATURE", "0.2")),
+            latency_ms=duration_ms,
+            answer_chars=len(answer),
+            markers=[
+                Marker(type="Decision", text="Answer grounded in retrieved context"),
+            ],
+        ).model_dump()
+    )
     return JSONResponse({"answer": answer, "snippets": snippets, "sources": sources})

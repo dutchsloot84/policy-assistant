@@ -28,6 +28,27 @@ Context:
 If the context does not contain information that answers the query, the assistant must
 reply: "I don't know." and avoid speculation.
 
+## Historian tap
+
+```mermaid
+flowchart LR
+    subgraph Streamlit UI
+        ui[Chat & Upload]
+    end
+    subgraph FastAPI
+        ingest[/POST /ingest/]
+        query[/POST /query/]
+    end
+    subgraph Historian
+        ledger[(JSONL Ledger)]
+    end
+
+    ui -- upload PDF --> ingest
+    ui -- ask question --> query
+    ingest -- append event --> ledger
+    query -- append event --> ledger
+```
+
 ## Components
 
 - **API layer:** FastAPI application exposing `/health`, `/ingest`, and `/query` endpoints.

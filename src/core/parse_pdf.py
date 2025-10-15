@@ -36,8 +36,8 @@ def extract_text_from_pdf(file_bytes: bytes, *, filename: Optional[str] = None) 
         return _normalize_whitespace(pypdf_text)
 
     LOGGER.warning(
-        "Primary PDF extraction failed; attempting pdfminer fallback",
-        extra={"filename": filename},
+        "Primary PDF extraction failed; attempting pdfminer fallback for %s",
+        filename or "unknown file",
     )
     pdfminer_text = _extract_with_pdfminer(file_bytes)
     return _normalize_whitespace(pdfminer_text) if pdfminer_text else ""

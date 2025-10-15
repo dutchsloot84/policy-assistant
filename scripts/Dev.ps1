@@ -82,12 +82,13 @@ function Hist-Snapshot {
   if ($ACT) {
     . $ACT
   }
-  python - <<'PY'
+  $script = @'
 from historian.export import summarize
 import os
 p = os.getenv('HIST_LEDGER', 'data/historian/ledger.jsonl')
 print(summarize(p) if os.path.exists(p) else {"message": "no ledger"})
-PY
+'@
+  python -c $script
 }
 
 function Hist-Clear {

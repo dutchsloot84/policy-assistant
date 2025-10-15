@@ -1,0 +1,17 @@
+fastapi
+uvicorn[standard]
+streamlit
+python-dotenv
+faiss-cpu
+numpy
+pydantic
+pypdf
+pdfminer.six
+openai
+pytest
+pytest-cov
+requests
+ruff
+black
+mypy
+python-multipart

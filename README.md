@@ -23,6 +23,7 @@ with minimal changes.
 - Low-cost default models (`text-embedding-3-small`, `gpt-4o-mini`).
 - Dedupe identical chunks before embedding and cache vectors on disk.
 - Batched embedding requests (default batch size 64) with strict rate limiting.
+- Per-chunk embedding guardrail configurable via `MAX_EMBED_TOKENS` (default 6000 tokens).
 - Temperature 0.2 and max tokens 300 for concise answers.
 - Circuit breaker that halts requests after repeated failures.
 - No secrets or sensitive data logged; basic PII redaction available on retrieved context.

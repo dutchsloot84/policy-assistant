@@ -17,7 +17,7 @@ load_dotenv()
 
 CACHE_FILE = Path(os.getenv("EMBED_CACHE_PATH", "data/emb_cache.pkl"))
 BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "64"))
-EMBED_MAX_TOKENS = int(os.getenv("MAX_EMBED_TOKENS", "6000"))
+MAX_EMBED_TOKENS = int(os.getenv("MAX_EMBED_TOKENS", "6000"))
 
 
 class EmbeddingService:
@@ -29,7 +29,7 @@ class EmbeddingService:
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._cache: Dict[str, List[float]] = self._load_cache()
         self.guard = CostGuard.from_env()
-        self.embed_max_tokens = EMBED_MAX_TOKENS
+        self.embed_max_tokens = MAX_EMBED_TOKENS
         if self.embed_max_tokens > 0:
             self.guard.max_tokens = self.embed_max_tokens
 
@@ -65,9 +65,9 @@ class EmbeddingService:
 
     def _request_embeddings(self, texts: Iterable[str]) -> List[List[float]]:
         payload = list(texts)
-        if self.embed_max_tokens > 0:
-            for text in payload:
-                self.guard.enforce_budget(prompt=text)
+        for item in payload:
+            if estimate_tokens(item) > MAX_EMBED_TOKENS:
+                raise ValueError("Estimated tokens for embedding input exceed MAX_EMBED_TOKENS")
         self.guard.before_request()
         try:
             vectors = self.client.embed_texts(payload)

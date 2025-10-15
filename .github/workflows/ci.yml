@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+      - name: Lint
+        run: |
+          source .venv/bin/activate
+          make lint
+        env:
+          OPENAI_API_KEY: ""
+      - name: Test
+        run: |
+          source .venv/bin/activate
+          make test
+        env:
+          OPENAI_API_KEY: ""

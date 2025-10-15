@@ -29,6 +29,9 @@ class EmbeddingService:
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._cache: Dict[str, List[float]] = self._load_cache()
         self.guard = CostGuard.from_env()
+        self.embed_max_tokens = EMBED_MAX_TOKENS
+        if self.embed_max_tokens > 0:
+            self.guard.max_tokens = self.embed_max_tokens
 
     def embed_documents(self, texts: Sequence[str]) -> List[List[float]]:
         return self._embed(texts)
@@ -68,7 +71,8 @@ class EmbeddingService:
         self.guard.before_request()
         try:
             vectors = self.client.embed_texts(payload)
-            self.guard.after_success(tokens_used=sum(len(v) for v in payload))
+            token_estimate = sum(estimate_tokens(v) for v in payload)
+            self.guard.after_success(tokens_used=token_estimate)
             return vectors
         except Exception as exc:  # pragma: no cover - network path
             self.guard.after_failure(error=exc)

@@ -64,9 +64,7 @@ class EmbeddingService:
         payload = list(texts)
         for item in payload:
             if estimate_tokens(item) > MAX_EMBED_TOKENS:
-                raise ValueError(
-                    "Estimated tokens for embedding input exceed MAX_EMBED_TOKENS"
-                )
+                raise ValueError("Estimated tokens for embedding input exceed MAX_EMBED_TOKENS")
         self.guard.before_request()
         try:
             vectors = self.client.embed_texts(payload)

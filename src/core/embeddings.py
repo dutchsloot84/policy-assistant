@@ -29,7 +29,7 @@ class EmbeddingService:
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._cache: Dict[str, List[float]] = self._load_cache()
         self.guard = CostGuard.from_env()
-        self.embed_max_tokens = EMBED_MAX_TOKENS
+        self.embed_max_tokens = MAX_EMBED_TOKENS
         if self.embed_max_tokens > 0:
             self.guard.max_tokens = self.embed_max_tokens
 

@@ -11,12 +11,13 @@ from typing import Dict, Iterable, List, Sequence
 from dotenv import load_dotenv
 
 from ..llm.openai_client import OpenAIClient
-from .cost_guard import CostGuard
+from .cost_guard import CostGuard, estimate_tokens
 
 load_dotenv()
 
 CACHE_FILE = Path(os.getenv("EMBED_CACHE_PATH", "data/emb_cache.pkl"))
 BATCH_SIZE = int(os.getenv("EMBED_BATCH_SIZE", "64"))
+MAX_EMBED_TOKENS = int(os.getenv("MAX_EMBED_TOKENS", "6000"))
 
 
 class EmbeddingService:
@@ -61,8 +62,11 @@ class EmbeddingService:
 
     def _request_embeddings(self, texts: Iterable[str]) -> List[List[float]]:
         payload = list(texts)
-        total_prompt = "\n".join(payload)
-        self.guard.enforce_budget(prompt=total_prompt)
+        for item in payload:
+            if estimate_tokens(item) > MAX_EMBED_TOKENS:
+                raise ValueError(
+                    "Estimated tokens for embedding input exceed MAX_EMBED_TOKENS"
+                )
         self.guard.before_request()
         try:
             vectors = self.client.embed_texts(payload)

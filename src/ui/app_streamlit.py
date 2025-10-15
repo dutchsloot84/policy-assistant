@@ -50,7 +50,7 @@ if st.button("Submit") and query_text:
         with st.expander("Retrieved context"):
             sources = data.get("sources", [])
             snippets = data.get("snippets", [])
-            for source, snippet in zip(sources, snippets):
+            for source, snippet in zip(sources, snippets, strict=False):
                 label = source["source"]
                 chunk_id = source["chunk_id"]
                 score = source["score"]

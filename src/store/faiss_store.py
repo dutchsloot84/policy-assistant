@@ -74,7 +74,7 @@ class FaissVectorStore:
         faiss.normalize_L2(vector)
         scores, indices = self.index.search(vector, k)
         results: List[tuple[float, Metadata]] = []
-        for score, idx in zip(scores[0], indices[0]):
+        for score, idx in zip(scores[0], indices[0], strict=True):
             if idx == -1:
                 continue
             if idx < len(self.metadata):

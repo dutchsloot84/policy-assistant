@@ -51,7 +51,7 @@ class EmbeddingService:
             for batch_keys in batches:
                 batch_texts = [deduped[key] for key in batch_keys]
                 vectors = self._request_embeddings(batch_texts)
-                for key, vector in zip(batch_keys, vectors):
+                for key, vector in zip(batch_keys, vectors, strict=True):
                     self._cache[key] = vector
             self._persist_cache()
 

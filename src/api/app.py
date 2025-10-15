@@ -68,7 +68,7 @@ async def ingest(
     vectors = embeddings.embed_documents(documents)
 
     metadata_items: List[Metadata] = []
-    for chunk, _vector in zip(chunks, vectors):
+    for chunk, _vector in zip(chunks, vectors, strict=True):
         metadata_items.append(
             Metadata(
                 document_id=file.filename or "uploaded.pdf",

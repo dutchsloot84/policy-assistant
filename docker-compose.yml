@@ -1,0 +1,24 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    command: uvicorn src.api.app:app --host 0.0.0.0 --port 8000
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATA_DIR=/data
+    volumes:
+      - ./:/app
+      - ./data:/data
+    ports:
+      - "8000:8000"
+  ui:
+    build: .
+    command: streamlit run src/ui/app_streamlit.py --server.port=8501 --server.address=0.0.0.0
+    environment:
+      - API_URL=http://api:8000
+    volumes:
+      - ./:/app
+    ports:
+      - "8501:8501"
+    depends_on:
+      - api

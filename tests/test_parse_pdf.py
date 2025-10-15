@@ -1,3 +1,4 @@
+import src.core.parse_pdf as parse_pdf
 from src.core.parse_pdf import extract_text_from_pdf
 
 
@@ -47,3 +48,12 @@ def test_extract_text_from_pdf():
 
 def test_extract_text_empty_bytes():
     assert extract_text_from_pdf(b"") == ""
+
+
+def test_extract_text_pdfminer_fallback(monkeypatch):
+    monkeypatch.setattr(parse_pdf, "_extract_with_pypdf", lambda _bytes: "")
+    monkeypatch.setattr(parse_pdf, "_extract_with_pdfminer", lambda _bytes: " fallback text ")
+
+    text = extract_text_from_pdf(b"pdf-bytes", filename="document.pdf")
+
+    assert text == "fallback text"

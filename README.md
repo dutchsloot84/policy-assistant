@@ -48,6 +48,20 @@ Open http://localhost:8501 to access the Streamlit UI.
 3. The response includes citations by filename and chunk id. Expand the "Retrieved context"
    panel to see snippets and scores.
 
+## Historian (Audit Trail)
+
+- Every successful ingest and query is appended to a local JSONL ledger with timestamps,
+  filenames, chunk counts, retrieval hits (including previews and scores), and the model
+  parameters used for the call.
+- The ledger lives at `data/historian/ledger.jsonl` by default and automatically rotates to
+  `ledger.rN.jsonl` when it reaches the configured megabytes threshold (`HIST_ROTATE_MB`,
+  default 10 MB).
+- Open the **History** tab in the Streamlit UI to review a live summary and drill into the
+  raw JSON events. The PowerShell helpers `hist-snapshot` and `hist-clear` provide quick CLI
+  inspection and maintenance for Windows-first developers.
+- Retrieval previews honour the `REDACT_PII` toggle, so enable `REDACT_PII=true` when logging
+  sensitive content to keep ledger entries scrubbed.
+
 ## Troubleshooting
 
 - **PDF is scanned or image-only:** Text extraction will be empty. Use OCR tools (e.g.,

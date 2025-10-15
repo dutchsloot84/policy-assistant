@@ -38,6 +38,51 @@ developer laptop. All timestamps should use the America/Phoenix timezone for con
 - Override `OpenAIClient.chat` and `EmbeddingService.embed_query`/`embed_documents` in a
   wrapper script or via dependency injection to avoid live API calls (see `tests/test_api_query.py`).
 
+### Rotate or clear the historian ledger
+
+1. Confirm the target file via `echo $HIST_LEDGER` (defaults to `data/historian/ledger.jsonl`).
+2. Run `pwsh -File ./scripts/Dev.ps1 hist-clear` to remove the active ledger. Rotation will
+   automatically rename the file to `ledger.rN.jsonl` when it grows beyond `HIST_ROTATE_MB`.
+3. Restart ingestion/query flows; a fresh ledger file is created on the next successful event.
+
+### Create a CSV/summary snapshot
+
+1. Ensure the ledger exists (ingest/query at least once).
+2. Generate a JSON summary via `pwsh -File ./scripts/Dev.ps1 hist-snapshot` or by running:
+
+   ```bash
+   python - <<'PY'
+   from historian.export import summarize
+   import os
+   path = os.getenv('HIST_LEDGER', 'data/historian/ledger.jsonl')
+   print(summarize(path))
+   PY
+   ```
+
+3. For spreadsheet analysis, convert the JSONL into CSV with the standard library:
+
+   ```bash
+   python - <<'PY'
+   import csv
+   import json
+   import os
+
+   path = os.getenv('HIST_LEDGER', 'data/historian/ledger.jsonl')
+   with open(path, 'r', encoding='utf-8') as handle:
+       rows = [json.loads(line) for line in handle if line.strip()]
+
+   if rows:
+       fieldnames = sorted({key for row in rows for key in row})
+       with open('ledger_export.csv', 'w', encoding='utf-8', newline='') as out:
+           writer = csv.DictWriter(out, fieldnames=fieldnames)
+           writer.writeheader()
+           writer.writerows(rows)
+       print('Wrote ledger_export.csv with', len(rows), 'rows')
+   else:
+       print('No ledger rows to export')
+   PY
+   ```
+
 ### Handling API rate limits
 
 - Rate limiter defaults to 2 RPS. Adjust `RATE_LIMIT_RPS` cautiously.

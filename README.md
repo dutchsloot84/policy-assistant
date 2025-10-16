@@ -69,6 +69,10 @@ Open http://localhost:8501 to access the Streamlit UI.
   `ocrmypdf`) before ingesting.
 - **Rate limit errors:** Increase `RATE_LIMIT_RPS` cautiously or wait and retry. The
   circuit breaker will reopen after the reset timeout.
+- **Corporate TLS proxy / self-signed certs:** Set `OPENAI_CA_BUNDLE`,
+  `REQUESTS_CA_BUNDLE`, or `SSL_CERT_FILE` in `.env` (or the process environment) to the
+  path of your trusted PEM bundle before starting the API so the OpenAI client can verify
+  TLS handshakes.
 - **Empty answer:** Ensure the PDF produced text and that the query is relevant. Check the
   retrieved context for coverage.
 - **Embeddings re-run on same PDF:** Ensure the file contents have not changed. The cache

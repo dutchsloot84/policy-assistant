@@ -3,6 +3,8 @@ import importlib
 import pytest
 from fastapi.testclient import TestClient
 
+from src.core.cost_guard import estimate_tokens
+
 
 def _make_pdf_bytes(text: str) -> bytes:
     header = b"%PDF-1.4\n"
@@ -81,3 +83,31 @@ def test_ingest_allows_large_batches_with_small_chunks(ingest_client):
     assert response.status_code == 200
     payload = response.json()
     assert payload["chunks"] >= 2
+
+
+def test_ingest_many_small_chunks_exceeding_chat_budget(monkeypatch, ingest_client):
+    from src.api import app as app_module
+    from src.core import chunk as chunk_module
+
+    def small_chunker(text: str):
+        return chunk_module.chunk_text(text, max_chars=80, overlap=0)
+
+    monkeypatch.setattr(app_module, "chunk_text", small_chunker)
+
+    sentence = "Policy reminder: follow procedure A before proceeding to step B."
+    text = " ".join([sentence] * 60)
+    pdf_bytes = _make_pdf_bytes(text)
+
+    chunks = small_chunker(text)
+    assert len(chunks) > 40  # plenty of small chunks
+    assert max(len(chunk.text) for chunk in chunks) <= 80
+    assert sum(estimate_tokens(chunk.text) for chunk in chunks) > 300
+
+    response = ingest_client.post(
+        "/ingest",
+        files={"file": ("policy.pdf", pdf_bytes, "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["chunks"] == len(chunks)

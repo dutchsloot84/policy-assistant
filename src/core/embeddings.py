@@ -66,9 +66,7 @@ class EmbeddingService:
         if max_tokens > 0:
             for item in payload:
                 if estimate_tokens(item) > max_tokens:
-                    raise ValueError(
-                        "Estimated tokens for embedding input exceed MAX_EMBED_TOKENS"
-                    )
+                    raise ValueError("Estimated tokens for embedding input exceed MAX_EMBED_TOKENS")
         return self.client.embed_texts(payload)
 
     def _load_cache(self) -> Dict[str, List[float]]:

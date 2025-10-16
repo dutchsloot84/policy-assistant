@@ -8,7 +8,7 @@ import time
 from typing import Iterable, List, Sequence
 
 from dotenv import load_dotenv
-from openai import APIError, OpenAI
+from openai import APIError, OpenAI, OpenAIError
 
 from ..core.cost_guard import CostGuard, exponential_backoff
 
@@ -39,17 +39,23 @@ class OpenAIClient:
             return []
         model = EMBED_MODEL
         retries = exponential_backoff()
+        last_error: OpenAIError | None = None
         for attempt in range(5):
             try:
                 response = self.client.embeddings.create(model=model, input=list(texts))
                 return [list(item.embedding) for item in response.data]
-            except APIError as exc:  # pragma: no cover - network path
+            except OpenAIError as exc:  # pragma: no cover - network path
+                last_error = exc
+                if attempt == 4:
+                    break
                 wait = next(retries)
                 LOGGER.warning(
                     "Embedding request failed; retrying",
                     extra={"attempt": attempt + 1, "error": str(exc)},
                 )
                 time.sleep(wait)
+        if last_error is not None:
+            raise last_error
         raise RuntimeError("Failed to retrieve embeddings after retries")
 
     def chat(self, *, query: str, context_blocks: Iterable[str]) -> str:

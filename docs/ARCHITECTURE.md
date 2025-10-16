@@ -54,13 +54,17 @@ flowchart LR
 
 - **API layer:** FastAPI application exposing `/health`, `/ingest`, and `/query` endpoints.
 - **PDF parsing:** pypdf with pdfminer fallback to maximize extraction success.
-- **Chunking:** Sentence-aware splits with overlap to preserve semantics.
+- **Chunking:** Sentence-aware splits with overlap to preserve semantics, while tracking
+  per-chunk page offsets for downstream citations.
 - **Field extractor:** Regex patterns capture policy numbers and premium values during ingest.
 - **Embeddings:** Deduped, cached OpenAI embeddings with batching and cost guard.
-- **Vector store:** Local FAISS index persisted to disk with metadata.
+- **Vector store:** Local FAISS index persisted to disk with metadata, including source file,
+  chunk id, and page range.
 - **Retrieval:** Top-k vector search (default 3) with optional redaction.
-- **LLM:** OpenAI chat completions using `gpt-4o-mini` and conservative token limits.
-- **UI:** Streamlit front-end for ingestion and chat.
+- **LLM:** OpenAI chat completions using `gpt-4o-mini` and conservative token limits. Structured
+  shortcuts append explicit page numbers to answers.
+- **UI:** Streamlit front-end for ingestion and chat that surfaces page-aware context entries in
+  the "Retrieved context" expander.
 
 ## AWS lift-and-shift considerations
 

@@ -8,9 +8,17 @@ from fastapi.testclient import TestClient
 def client(tmp_path, monkeypatch):
     monkeypatch.setenv("DATA_DIR", str(tmp_path))
     monkeypatch.setenv("REDACT_PII", "false")
+    monkeypatch.setenv("HIST_LEDGER", str(tmp_path / "ledger.jsonl"))
+
     from src.api import app as app_module
 
     importlib.reload(app_module)
+
+    app_module.vector_store = app_module.FaissVectorStore(
+        index_path=tmp_path / "index.faiss",
+        meta_path=tmp_path / "meta.pkl",
+    )
+    app_module.retriever = app_module.Retriever(app_module.vector_store)
 
     # Patch embeddings to deterministic vectors
     app_module.embedding_service.embed_query = lambda _: [1.0, 0.0]

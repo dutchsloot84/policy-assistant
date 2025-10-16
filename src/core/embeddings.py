@@ -11,7 +11,7 @@ from typing import Dict, Iterable, List, Sequence
 from dotenv import load_dotenv
 
 from ..llm.openai_client import OpenAIClient
-from .cost_guard import CostGuard, estimate_tokens
+from .cost_guard import estimate_tokens
 
 load_dotenv()
 
@@ -28,10 +28,7 @@ class EmbeddingService:
         self.cache_file = cache_file or CACHE_FILE
         self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self._cache: Dict[str, List[float]] = self._load_cache()
-        self.guard = CostGuard.from_env()
         self.embed_max_tokens = MAX_EMBED_TOKENS
-        if self.embed_max_tokens > 0:
-            self.guard.max_tokens = self.embed_max_tokens
 
     def embed_documents(self, texts: Sequence[str]) -> List[List[float]]:
         return self._embed(texts)
@@ -65,18 +62,14 @@ class EmbeddingService:
 
     def _request_embeddings(self, texts: Iterable[str]) -> List[List[float]]:
         payload = list(texts)
-        for item in payload:
-            if estimate_tokens(item) > MAX_EMBED_TOKENS:
-                raise ValueError("Estimated tokens for embedding input exceed MAX_EMBED_TOKENS")
-        self.guard.before_request()
-        try:
-            vectors = self.client.embed_texts(payload)
-            token_estimate = sum(estimate_tokens(v) for v in payload)
-            self.guard.after_success(tokens_used=token_estimate)
-            return vectors
-        except Exception as exc:  # pragma: no cover - network path
-            self.guard.after_failure(error=exc)
-            raise
+        max_tokens = self.embed_max_tokens
+        if max_tokens > 0:
+            for item in payload:
+                if estimate_tokens(item) > max_tokens:
+                    raise ValueError(
+                        "Estimated tokens for embedding input exceed MAX_EMBED_TOKENS"
+                    )
+        return self.client.embed_texts(payload)
 
     def _load_cache(self) -> Dict[str, List[float]]:
         if not self.cache_file.exists():

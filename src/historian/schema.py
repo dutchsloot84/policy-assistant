@@ -38,6 +38,8 @@ class RetrievalHit(BaseModel):
     chunk_id: str
     score: float
     preview: str
+    page_start: int | None = None
+    page_end: int | None = None
 
 
 class IngestEvent(BaseModel):

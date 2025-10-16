@@ -45,6 +45,8 @@ def structured_client(tmp_path, monkeypatch):
                 chunk_id="chunk-123",
                 text="Estimated Total Premium\n$ 299,997.00",
                 source="policy.pdf",
+                page_start=2,
+                page_end=2,
                 fields={"estimated_total_premium": "$ 299,997.00"},
             )
         ],
@@ -66,7 +68,9 @@ def test_structured_shortcut_returns_field(structured_client):
     payload = response.json()
     assert "$ 299,997.00" in payload["answer"]
     assert "policy.pdf" in payload["answer"]
+    assert "Page 2" in payload["answer"]
     assert payload["sources"][0]["chunk_id"] == "chunk-123"
+    assert payload["sources"][0]["page_start"] == 2
     assert not chat_called["value"]
     assert captured_queries[0].startswith("What is the estimated total premium?")
     assert "premium overall" in captured_queries[0].lower()

@@ -1,6 +1,6 @@
 import importlib
 
-from src.core.chunk import chunk_text
+from src.core.chunk import Chunk, chunk_text, format_page_label, map_offsets_to_page_range
 
 
 def test_chunk_simple_split():
@@ -33,3 +33,22 @@ def test_chunk_env_defaults(monkeypatch):
     monkeypatch.delenv("CHUNK_MAX_CHARS", raising=False)
     monkeypatch.delenv("CHUNK_OVERLAP", raising=False)
     importlib.reload(chunk_module)
+
+
+def test_map_offsets_to_page_range_handles_boundaries():
+    page_breaks = [0, 14, 42]
+
+    first = Chunk(id="a", text="", start=0, end=10)
+    assert map_offsets_to_page_range(first, page_breaks) == (1, 1)
+
+    second = Chunk(id="b", text="", start=16, end=30)
+    assert map_offsets_to_page_range(second, page_breaks) == (2, 2)
+
+    spanning = Chunk(id="c", text="", start=10, end=50)
+    assert map_offsets_to_page_range(spanning, page_breaks) == (1, 3)
+
+
+def test_format_page_label():
+    assert format_page_label(None, None) == ""
+    assert format_page_label(1, 1) == "Page 1"
+    assert format_page_label(2, 3) == "Pages 2–3"

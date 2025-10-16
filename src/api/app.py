@@ -13,10 +13,10 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from ..core.chunk import chunk_text
+from ..core.chunk import chunk_text, format_page_label, map_offsets_to_page_range
 from ..core.embeddings import EmbeddingService
 from ..core.field_extract import extract_fields
-from ..core.parse_pdf import extract_text_from_pdf, normalize_for_chunking
+from ..core.parse_pdf import extract_text_from_pdf
 from ..core.query_rewrite import expand_query
 from ..core.retrieval import Retriever
 from ..historian import Ledger
@@ -65,25 +65,27 @@ async def ingest(
 ) -> JSONResponse:
     start = time.monotonic()
     content = await file.read()
-    text = extract_text_from_pdf(content, filename=file.filename)
+    text, page_breaks = extract_text_from_pdf(content, filename=file.filename)
     if not text:
         raise HTTPException(status_code=400, detail="No text could be extracted from PDF")
 
-    normalized_text = normalize_for_chunking(text)
-    fields = extract_fields(normalized_text)
+    fields = extract_fields(text)
 
-    chunks = chunk_text(normalized_text)
+    chunks = chunk_text(text)
     documents = [chunk.text for chunk in chunks]
     vectors = embeddings.embed_documents(documents)
 
     metadata_items: List[Metadata] = []
     for chunk, _vector in zip(chunks, vectors, strict=True):
+        page_start, page_end = map_offsets_to_page_range(chunk, page_breaks)
         metadata_items.append(
             Metadata(
                 document_id=file.filename or "uploaded.pdf",
                 chunk_id=chunk.id,
                 text=chunk.text,
                 source=file.filename or "uploaded.pdf",
+                page_start=page_start,
+                page_end=page_end,
                 fields=dict(fields),
             )
         )
@@ -190,6 +192,8 @@ async def query(
             "source": chunk.source,
             "chunk_id": chunk.chunk_id,
             "score": chunk.score,
+            "page_start": chunk.metadata.page_start,
+            "page_end": chunk.metadata.page_end,
         }
         for chunk in results
     ]
@@ -206,9 +210,11 @@ async def query(
         else:
             display_label = "Policy number"
 
+        page_label = format_page_label(field_metadata.page_start, field_metadata.page_end)
+        page_note = f" | {page_label}" if page_label else ""
         answer = (
             f"{display_label}: {field_value} "
-            f"(Source: {field_metadata.source} | Chunk: {field_metadata.chunk_id})"
+            f"(Source: {field_metadata.source}{page_note} | Chunk: {field_metadata.chunk_id})"
         )
         markers.append(Marker(type="Note", text=f"Structured field shortcut: {requested_field}"))
         if not field_from_results:
@@ -218,6 +224,8 @@ async def query(
                         "source": field_metadata.source,
                         "chunk_id": field_metadata.chunk_id,
                         "score": 0.0,
+                        "page_start": field_metadata.page_start,
+                        "page_end": field_metadata.page_end,
                     }
                 )
     else:
@@ -237,6 +245,8 @@ async def query(
                 chunk_id=hasher.hexdigest()[:12],
                 score=chunk.score,
                 preview=chunk.text[:300],
+                page_start=chunk.metadata.page_start,
+                page_end=chunk.metadata.page_end,
             )
         )
 

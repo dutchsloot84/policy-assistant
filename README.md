@@ -18,13 +18,25 @@ with minimal changes.
 7. A cost guard enforces rate limits, exponential backoff, token budgets, and a simple
    circuit breaker to avoid runaway API usage.
 
+### Table-aware chunking & field extractor
+
+- PDF text is normalized with `normalize_for_chunking` so carriage returns become newlines,
+  tabs become spaces, and table columns keep a hint of padding instead of collapsing into a
+  single run of words.
+- Default chunking now favours dense schedules: 550-character max chunks with 90-character
+  overlap (still overridable via environment variables) to keep labels and numeric values in
+  the same chunk.
+- During ingest we run lightweight regexes to capture policy numbers, estimated total
+  premiums, and inception premiums. These values are stored in chunk metadata, surfaced to the
+  historian, and used to answer common questions without invoking the chat model.
+
 ## Cost controls
 
 - Low-cost default models (`text-embedding-3-small`, `gpt-4o-mini`).
 - Dedupe identical chunks before embedding and cache vectors on disk.
 - Batched embedding requests (default batch size 64) with strict rate limiting.
 - Per-chunk embedding guardrail configurable via `MAX_EMBED_TOKENS` (default 6000 tokens).
-- Text chunking defaults adjustable via `CHUNK_MAX_CHARS` and `CHUNK_OVERLAP` (defaults 1200/150).
+- Text chunking defaults adjustable via `CHUNK_MAX_CHARS` and `CHUNK_OVERLAP` (defaults 550/90).
 - Temperature 0.2 and max tokens 300 for concise answers.
 - Circuit breaker that halts requests after repeated failures.
 - No secrets or sensitive data logged; basic PII redaction available on retrieved context.

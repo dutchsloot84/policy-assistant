@@ -48,17 +48,24 @@ class Chunk:
     end: int
 
 
-DEFAULT_MAX_CHARS = _get_env_int("CHUNK_MAX_CHARS", 1200)
-DEFAULT_OVERLAP = _get_env_int("CHUNK_OVERLAP", 150)
+DEFAULT_MAX_CHARS = _get_env_int("CHUNK_MAX_CHARS", 550)
+DEFAULT_OVERLAP = _get_env_int("CHUNK_OVERLAP", 90)
 
 
 def chunk_text(
     text: str,
     *,
-    max_chars: int = DEFAULT_MAX_CHARS,
-    overlap: int = DEFAULT_OVERLAP,
+    max_chars: int | None = None,
+    overlap: int | None = None,
 ) -> List[Chunk]:
     """Split text into overlapping chunks, sentence-aware if possible."""
+    resolved_max_chars = (
+        max_chars if max_chars is not None else _get_env_int("CHUNK_MAX_CHARS", DEFAULT_MAX_CHARS)
+    )
+    resolved_overlap = (
+        overlap if overlap is not None else _get_env_int("CHUNK_OVERLAP", DEFAULT_OVERLAP)
+    )
+
     cleaned = text.strip()
     if not cleaned:
         return []
@@ -80,39 +87,39 @@ def chunk_text(
         end_index = start_index + len(chunk_text_value)
         chunks.append(Chunk(id=chunk_id, text=chunk_text_value, start=start_index, end=end_index))
         # prepare overlap
-        if overlap > 0:
-            overlap_text = chunk_text_value[-overlap:].lstrip()
+        if resolved_overlap > 0:
+            overlap_text = chunk_text_value[-resolved_overlap:].lstrip()
             buffer = [overlap_text] if overlap_text else []
         else:
             buffer = []
-        start_index = max(0, end_index - overlap)
+        start_index = max(0, end_index - resolved_overlap)
 
     for sentence in sentences:
         sentence = sentence.strip()
         if not sentence:
             continue
 
-        if len(sentence) > max_chars:
+        if len(sentence) > resolved_max_chars:
             flush_buffer()
-            for piece in _hard_split(sentence, max_chars):
+            for piece in _hard_split(sentence, resolved_max_chars):
                 chunk_id = str(uuid.uuid4())
                 end_index = start_index + len(piece)
                 chunks.append(Chunk(id=chunk_id, text=piece, start=start_index, end=end_index))
-                start_index = max(0, end_index - overlap)
+                start_index = max(0, end_index - resolved_overlap)
             continue
 
         prospective = len(" ".join(buffer + [sentence]).strip()) if buffer else len(sentence)
-        if prospective > max_chars:
+        if prospective > resolved_max_chars:
             flush_buffer()
             # after flush, buffer may contain overlap text; re-evaluate length
             prospective = len(" ".join(buffer + [sentence]).strip()) if buffer else len(sentence)
-            while prospective > max_chars:
+            while prospective > resolved_max_chars:
                 # sentence itself still too long with overlap; split sentence and continue
-                for piece in _hard_split(sentence, max_chars):
+                for piece in _hard_split(sentence, resolved_max_chars):
                     chunk_id = str(uuid.uuid4())
                     end_index = start_index + len(piece)
                     chunks.append(Chunk(id=chunk_id, text=piece, start=start_index, end=end_index))
-                    start_index = max(0, end_index - overlap)
+                    start_index = max(0, end_index - resolved_overlap)
                 sentence = ""
                 break
             if not sentence:

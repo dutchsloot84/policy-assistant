@@ -4,7 +4,8 @@
 flowchart TD
     A[Streamlit UI] -->|Upload PDF| B[FastAPI /ingest]
     B --> C[PDF Parser]
-    C --> D[Chunker]
+    C --> CX[Field Extractor (regex)]
+    CX --> D[Chunker]
     D --> E[Embedding Service]
     E --> F[FAISS Vector Store]
     A -->|Query| G[FastAPI /query]
@@ -54,6 +55,7 @@ flowchart LR
 - **API layer:** FastAPI application exposing `/health`, `/ingest`, and `/query` endpoints.
 - **PDF parsing:** pypdf with pdfminer fallback to maximize extraction success.
 - **Chunking:** Sentence-aware splits with overlap to preserve semantics.
+- **Field extractor:** Regex patterns capture policy numbers and premium values during ingest.
 - **Embeddings:** Deduped, cached OpenAI embeddings with batching and cost guard.
 - **Vector store:** Local FAISS index persisted to disk with metadata.
 - **Retrieval:** Top-k vector search (default 3) with optional redaction.

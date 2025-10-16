@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from openai import OpenAIError
 
 from src.llm.openai_client import OpenAIClient

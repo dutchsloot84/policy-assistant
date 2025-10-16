@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Iterable, List, Sequence
 
 from dotenv import load_dotenv
@@ -31,7 +32,8 @@ class OpenAIClient:
         api_key = api_key or os.getenv("OPENAI_API_KEY", "")
         if not api_key:
             LOGGER.warning("OPENAI_API_KEY missing; client will fail on live calls")
-        self.client = OpenAI(api_key=api_key)
+        http_client = self._build_http_client()
+        self.client = OpenAI(api_key=api_key, http_client=http_client)
         self.cost_guard = CostGuard.from_env()
 
     def embed_texts(self, texts: Sequence[str]) -> List[List[float]]:
@@ -92,3 +94,33 @@ class OpenAIClient:
     @staticmethod
     def _build_prompt(context_blocks: Iterable[str]) -> str:
         return "\n\n".join(context_blocks)
+
+    @staticmethod
+    def _build_http_client():
+        """Return an httpx client configured with a custom CA bundle if provided."""
+
+        try:
+            import httpx
+        except ImportError:  # pragma: no cover - should always be available via openai
+            LOGGER.warning("httpx unavailable; using default OpenAI HTTP client")
+            return None
+
+        ca_bundle = (
+            os.getenv("OPENAI_CA_BUNDLE")
+            or os.getenv("REQUESTS_CA_BUNDLE")
+            or os.getenv("SSL_CERT_FILE")
+        )
+        if not ca_bundle:
+            return None
+
+        path = Path(ca_bundle).expanduser()
+        if not path.exists():
+            LOGGER.warning(
+                "Configured CA bundle does not exist; ignoring",
+                extra={"path": str(path)},
+            )
+            return None
+
+        LOGGER.info("Using custom CA bundle for OpenAI client", extra={"path": str(path)})
+        # httpx.Client accepts str paths for verify parameter.
+        return httpx.Client(verify=str(path))

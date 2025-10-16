@@ -7,8 +7,8 @@ import math
 import os
 import re
 import uuid
-from dataclasses import dataclass
 from bisect import bisect_right
+from dataclasses import dataclass
 from typing import Iterable, List, Sequence, Tuple
 
 LOGGER = logging.getLogger(__name__)
@@ -131,9 +131,7 @@ def chunk_text(
     return chunks
 
 
-def map_offsets_to_page_range(
-    chunk: Chunk, page_breaks: Sequence[int]
-) -> Tuple[int, int]:
+def map_offsets_to_page_range(chunk: Chunk, page_breaks: Sequence[int]) -> Tuple[int, int]:
     """Return the 1-indexed page range that best matches the chunk offsets."""
 
     if not page_breaks:

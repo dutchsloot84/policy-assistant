@@ -8,10 +8,20 @@ from src.historian.schema import Marker, QueryEvent, RetrievalHit
 def test_query_event_serialization() -> None:
     hits = [
         RetrievalHit(
-            source="doc1.pdf", chunk_id="111aaa", score=0.75, preview="alpha", page_start=1, page_end=1
+            source="doc1.pdf",
+            chunk_id="111aaa",
+            score=0.75,
+            preview="alpha",
+            page_start=1,
+            page_end=1,
         ),
         RetrievalHit(
-            source="doc2.pdf", chunk_id="222bbb", score=0.55, preview="beta", page_start=2, page_end=3
+            source="doc2.pdf",
+            chunk_id="222bbb",
+            score=0.55,
+            preview="beta",
+            page_start=2,
+            page_end=3,
         ),
     ]
     event = QueryEvent(

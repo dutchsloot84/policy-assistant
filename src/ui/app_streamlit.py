@@ -29,6 +29,7 @@ def _format_page_label(page_start: int | None, page_end: int | None) -> str:
         return f"Page {page_start}"
     return f"Pages {page_start}–{page_end}"
 
+
 st.set_page_config(page_title="Policy Assistant", layout="wide")
 st.title("Policy Assistant Chatbot")
 
@@ -73,7 +74,9 @@ with chat_tab:
                     label = source["source"]
                     chunk_id = source["chunk_id"]
                     score = source["score"]
-                    page_label = _format_page_label(source.get("page_start"), source.get("page_end"))
+                    page_start = source.get("page_start")
+                    page_end = source.get("page_end")
+                    page_label = _format_page_label(page_start, page_end)
                     if page_label:
                         title = f"**{label} ({page_label}, chunk {chunk_id})**"
                     else:

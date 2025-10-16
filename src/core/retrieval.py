@@ -9,7 +9,7 @@ from typing import Iterable, List
 from dotenv import load_dotenv
 
 from ..core.redact import redact_text
-from ..store.faiss_store import FaissVectorStore
+from ..store.faiss_store import FaissVectorStore, Metadata
 
 load_dotenv()
 
@@ -22,6 +22,7 @@ class RetrievedChunk:
     chunk_id: str
     text: str
     source: str
+    metadata: Metadata
 
 
 class Retriever:
@@ -41,7 +42,13 @@ class Retriever:
         for score, meta in results:
             text = redact_text(meta.text, enabled=redact)
             chunks.append(
-                RetrievedChunk(score=score, chunk_id=meta.chunk_id, text=text, source=meta.source)
+                RetrievedChunk(
+                    score=score,
+                    chunk_id=meta.chunk_id,
+                    text=text,
+                    source=meta.source,
+                    metadata=meta,
+                )
             )
         return chunks
 

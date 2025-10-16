@@ -22,8 +22,12 @@ else:  # pragma: no cover - optional dependency available
 LOGGER = logging.getLogger(__name__)
 
 
-def _normalize_whitespace(value: str) -> str:
-    normalized = re.sub(r"\s+", " ", value)
+def normalize_for_chunking(text: str) -> str:
+    """Normalize PDF text while keeping table-friendly spacing."""
+
+    normalized = text.replace("\r", "\n").replace("\t", " ")
+    normalized = re.sub(r"[ ]{3,}", "  ", normalized)
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized)
     return normalized.strip()
 
 
@@ -34,7 +38,7 @@ def extract_text_from_pdf(file_bytes: bytes, *, filename: Optional[str] = None) 
 
     pypdf_text = _extract_with_pypdf(file_bytes)
     if pypdf_text:
-        return _normalize_whitespace(pypdf_text)
+        return normalize_for_chunking(pypdf_text)
 
     LOGGER.warning(
         "Primary PDF extraction failed; attempting pdfminer fallback for %s",
@@ -42,14 +46,14 @@ def extract_text_from_pdf(file_bytes: bytes, *, filename: Optional[str] = None) 
     )
     pdfminer_text = _extract_with_pdfminer(file_bytes)
     if pdfminer_text:
-        return _normalize_whitespace(pdfminer_text)
+        return normalize_for_chunking(pdfminer_text)
 
     LOGGER.warning(
         "Both primary PDF extractors failed; attempting OCR fallback for %s",
         filename or "unknown file",
     )
     ocr_text = _extract_with_ocr(file_bytes, filename=filename)
-    return _normalize_whitespace(ocr_text) if ocr_text else ""
+    return normalize_for_chunking(ocr_text) if ocr_text else ""
 
 
 def _extract_with_pypdf(file_bytes: bytes) -> str:

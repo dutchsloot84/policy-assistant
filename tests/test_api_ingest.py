@@ -51,6 +51,8 @@ def ingest_client(tmp_path, monkeypatch):
     monkeypatch.setenv("EMBED_CACHE_PATH", str(tmp_path / "emb.pkl"))
     monkeypatch.setenv("MAX_TOKENS", "300")
     monkeypatch.setenv("MAX_EMBED_TOKENS", "300")
+    monkeypatch.setenv("CHUNK_MAX_CHARS", "1200")
+    monkeypatch.setenv("CHUNK_OVERLAP", "150")
     monkeypatch.setenv("HIST_LEDGER", str(tmp_path / "ledger.jsonl"))
 
     from src.api import app as app_module

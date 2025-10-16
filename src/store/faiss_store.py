@@ -25,6 +25,8 @@ class Metadata:
     chunk_id: str
     text: str
     source: str
+    page_start: int | None = None
+    page_end: int | None = None
     fields: Dict[str, str] = field(default_factory=dict)
 
 

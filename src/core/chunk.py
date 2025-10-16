@@ -8,7 +8,8 @@ import os
 import re
 import uuid
 from dataclasses import dataclass
-from typing import Iterable, List
+from bisect import bisect_right
+from typing import Iterable, List, Sequence, Tuple
 
 LOGGER = logging.getLogger(__name__)
 
@@ -128,6 +129,38 @@ def chunk_text(
 
     flush_buffer()
     return chunks
+
+
+def map_offsets_to_page_range(
+    chunk: Chunk, page_breaks: Sequence[int]
+) -> Tuple[int, int]:
+    """Return the 1-indexed page range that best matches the chunk offsets."""
+
+    if not page_breaks:
+        return (1, 1)
+
+    start_page_index = bisect_right(page_breaks, chunk.start) - 1
+    start_page_index = max(0, start_page_index)
+
+    effective_end = max(chunk.start, chunk.end - 1)
+    end_page_index = bisect_right(page_breaks, effective_end) - 1
+    end_page_index = max(0, end_page_index)
+
+    last_index = len(page_breaks) - 1
+    start_page_index = min(start_page_index, last_index)
+    end_page_index = min(end_page_index, last_index)
+
+    return (start_page_index + 1, end_page_index + 1)
+
+
+def format_page_label(page_start: int | None, page_end: int | None) -> str:
+    """Return a human-readable label for a page range."""
+
+    if page_start is None:
+        return ""
+    if page_end is None or page_end == page_start:
+        return f"Page {page_start}"
+    return f"Pages {page_start}–{page_end}"
 
 
 def _split_into_sentences(text: str) -> Iterable[str]:

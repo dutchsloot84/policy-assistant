@@ -23,6 +23,8 @@ developer laptop. All timestamps should use the America/Phoenix timezone for con
 1. Stop the API/UI services.
 2. Delete `data/index.faiss`, `data/meta.pkl`, and optionally `data/emb_cache.pkl`.
 3. Restart the API and re-ingest policy PDFs.
+4. This refresh step is also required after schema changes (for example, the introduction of
+   page-aware metadata used by citations).
 
 ### Deleting a document by filename
 

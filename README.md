@@ -12,9 +12,11 @@ with minimal changes.
 3. Text is chunked (sentence-aware when available) with overlap for context continuity.
 4. Chunks are deduplicated, embedded in batches via OpenAI `text-embedding-3-small`, and
    cached on disk.
-5. Embeddings are stored in a local FAISS index alongside chunk metadata.
+5. Embeddings are stored in a local FAISS index alongside chunk metadata, including the
+   originating page range for each chunk.
 6. Queries embed locally, retrieve the top-3 chunks, and call `gpt-4o-mini` with a grounded
-   prompt that demands citations. Answers include snippets and sources.
+   prompt that demands citations. Answers include snippets, document names, chunk ids, and
+   page numbers when available.
 7. A cost guard enforces rate limits, exponential backoff, token budgets, and a simple
    circuit breaker to avoid runaway API usage.
 
@@ -59,8 +61,8 @@ Open http://localhost:8501 to access the Streamlit UI.
 1. Upload a policy PDF from the UI. Ingestion parses, chunks, embeds, and stores vectors.
 2. Ask a question in the chat box. The system retrieves the top-k chunks and sends them to
    the OpenAI chat model with a grounded prompt.
-3. The response includes citations by filename and chunk id. Expand the "Retrieved context"
-   panel to see snippets and scores.
+3. The response includes citations by filename, page range, and chunk id. Expand the "Retrieved
+   context" panel to see snippets and scores.
 
 ### Chunking configuration
 
@@ -103,6 +105,8 @@ composite chunk.
   retrieved context for coverage.
 - **Embeddings re-run on same PDF:** Ensure the file contents have not changed. The cache
   deduplicates based on text hash; re-ingesting identical content should be a no-op.
+- **Missing page numbers in citations:** Delete `data/index.faiss` and `data/meta.pkl`, restart
+  the services, and re-upload the PDFs so fresh metadata with page ranges is captured.
 
 ## AWS mapping
 

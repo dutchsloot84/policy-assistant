@@ -57,3 +57,21 @@ def test_extract_text_pdfminer_fallback(monkeypatch):
     text = extract_text_from_pdf(b"pdf-bytes", filename="document.pdf")
 
     assert text == "fallback text"
+
+
+def test_extract_text_ocr_fallback(monkeypatch):
+    monkeypatch.setattr(parse_pdf, "_extract_with_pypdf", lambda _bytes: "")
+    monkeypatch.setattr(parse_pdf, "_extract_with_pdfminer", lambda _bytes: "")
+
+    calls = []
+
+    def _fake_ocr(bytes_in: bytes, *, filename=None):
+        calls.append((bytes_in, filename))
+        return " ocr text "
+
+    monkeypatch.setattr(parse_pdf, "_extract_with_ocr", _fake_ocr)
+
+    text = extract_text_from_pdf(b"pdf-bytes", filename="ocr.pdf")
+
+    assert text == "ocr text"
+    assert calls == [(b"pdf-bytes", "ocr.pdf")]

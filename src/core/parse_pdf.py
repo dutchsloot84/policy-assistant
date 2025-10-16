@@ -90,7 +90,10 @@ def _extract_with_ocr(file_bytes: bytes, *, filename: Optional[str] = None) -> s
         import ocrmypdf  # type: ignore[import-untyped]
     except Exception:  # pragma: no cover - guard against optional import errors
         LOGGER.warning(
-            "OCR dependencies unavailable (missing ocrmypdf); install optional extras to enable OCR for %s",
+            (
+                "OCR dependencies unavailable (missing ocrmypdf); "
+                "install optional extras to enable OCR for %s"
+            ),
             filename or "unknown file",
         )
         return ""
@@ -99,16 +102,20 @@ def _extract_with_ocr(file_bytes: bytes, *, filename: Optional[str] = None) -> s
         import pytesseract  # type: ignore[import-untyped]
     except Exception:  # pragma: no cover - guard against optional import errors
         LOGGER.warning(
-            "OCR dependencies unavailable (missing pytesseract); install optional extras to enable OCR for %s",
+            (
+                "OCR dependencies unavailable (missing pytesseract); "
+                "install optional extras to enable OCR for %s"
+            ),
             filename or "unknown file",
         )
         return ""
     _ = pytesseract  # ensure the import is referenced for linters
 
     try:
-        with tempfile.NamedTemporaryFile(suffix=".pdf") as input_tmp, tempfile.NamedTemporaryFile(
-            suffix=".pdf"
-        ) as output_tmp:
+        with (
+            tempfile.NamedTemporaryFile(suffix=".pdf") as input_tmp,
+            tempfile.NamedTemporaryFile(suffix=".pdf") as output_tmp,
+        ):
             input_tmp.write(file_bytes)
             input_tmp.flush()
 
@@ -123,15 +130,11 @@ def _extract_with_ocr(file_bytes: bytes, *, filename: Optional[str] = None) -> s
             output_tmp.seek(0)
             ocr_bytes = output_tmp.read()
     except Exception as exc:  # pragma: no cover - defensive guard
-        LOGGER.error(
-            "OCR processing failed for %s", filename or "unknown file", exc_info=exc
-        )
+        LOGGER.error("OCR processing failed for %s", filename or "unknown file", exc_info=exc)
         return ""
 
     if not ocr_bytes:
-        LOGGER.warning(
-            "OCR processing produced no output for %s", filename or "unknown file"
-        )
+        LOGGER.warning("OCR processing produced no output for %s", filename or "unknown file")
         return ""
 
     # Try the extractors again on the OCR-processed PDF bytes.

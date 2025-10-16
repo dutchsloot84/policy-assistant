@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import math
+import os
 import re
 import uuid
 from dataclasses import dataclass
@@ -17,6 +18,26 @@ except Exception:  # pragma: no cover
     sent_tokenize = None
 
 
+def _get_env_int(name: str, default: int) -> int:
+    """Parse an integer environment variable with validation."""
+
+    raw_value = os.getenv(name)
+    if raw_value is None:
+        return default
+
+    try:
+        value = int(raw_value)
+    except ValueError:
+        LOGGER.warning("Invalid value for %s=%s; using default %s", name, raw_value, default)
+        return default
+
+    if value < 0:
+        LOGGER.warning("Negative value for %s=%s; using default %s", name, raw_value, default)
+        return default
+
+    return value
+
+
 @dataclass
 class Chunk:
     """Represents a chunk of text."""
@@ -27,8 +48,8 @@ class Chunk:
     end: int
 
 
-DEFAULT_MAX_CHARS = 1200
-DEFAULT_OVERLAP = 150
+DEFAULT_MAX_CHARS = _get_env_int("CHUNK_MAX_CHARS", 1200)
+DEFAULT_OVERLAP = _get_env_int("CHUNK_OVERLAP", 150)
 
 
 def chunk_text(

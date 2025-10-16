@@ -24,6 +24,7 @@ with minimal changes.
 - Dedupe identical chunks before embedding and cache vectors on disk.
 - Batched embedding requests (default batch size 64) with strict rate limiting.
 - Per-chunk embedding guardrail configurable via `MAX_EMBED_TOKENS` (default 6000 tokens).
+- Text chunking defaults adjustable via `CHUNK_MAX_CHARS` and `CHUNK_OVERLAP` (defaults 1200/150).
 - Temperature 0.2 and max tokens 300 for concise answers.
 - Circuit breaker that halts requests after repeated failures.
 - No secrets or sensitive data logged; basic PII redaction available on retrieved context.
@@ -48,6 +49,19 @@ Open http://localhost:8501 to access the Streamlit UI.
    the OpenAI chat model with a grounded prompt.
 3. The response includes citations by filename and chunk id. Expand the "Retrieved context"
    panel to see snippets and scores.
+
+### Chunking configuration
+
+- `CHUNK_MAX_CHARS` sets the upper bound for chunk size. Reducing it creates shorter,
+  sentence-aware snippets that improve recall for dense or structured content such as policy
+  tables, bullet lists, or numbered clauses where relevant details are tightly scoped.
+- `CHUNK_OVERLAP` preserves trailing context between adjacent chunks. Increase it when
+  important fields span multiple sentences; decrease it for highly structured text to avoid
+  redundant embeddings.
+
+Fine-tuning these values can increase retrieval quality for structured fields by ensuring the
+retriever surfaces the precise clause or table row that matches a query instead of a large
+composite chunk.
 
 ## Historian (Audit Trail)
 

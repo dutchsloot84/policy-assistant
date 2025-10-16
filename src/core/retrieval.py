@@ -8,8 +8,9 @@ from typing import Iterable, List
 
 from dotenv import load_dotenv
 
+from ..core.chunk import format_page_label
 from ..core.redact import redact_text
-from ..store.faiss_store import FaissVectorStore
+from ..store.faiss_store import FaissVectorStore, Metadata
 
 load_dotenv()
 
@@ -22,6 +23,7 @@ class RetrievedChunk:
     chunk_id: str
     text: str
     source: str
+    metadata: Metadata
 
 
 class Retriever:
@@ -41,16 +43,22 @@ class Retriever:
         for score, meta in results:
             text = redact_text(meta.text, enabled=redact)
             chunks.append(
-                RetrievedChunk(score=score, chunk_id=meta.chunk_id, text=text, source=meta.source)
+                RetrievedChunk(
+                    score=score,
+                    chunk_id=meta.chunk_id,
+                    text=text,
+                    source=meta.source,
+                    metadata=meta,
+                )
             )
         return chunks
 
     def build_context(self, chunks: Iterable[RetrievedChunk]) -> List[str]:
         context_blocks = []
         for chunk in chunks:
-            context_blocks.append(
-                "Source: "
-                + f"{chunk.source} | Chunk: {chunk.chunk_id}"
-                + f"\nScore: {chunk.score:.4f}\n{chunk.text}"
-            )
+            page_label = format_page_label(chunk.metadata.page_start, chunk.metadata.page_end)
+            header = f"Source: {chunk.source} | Chunk: {chunk.chunk_id}"
+            if page_label:
+                header += f" | {page_label}"
+            context_blocks.append(f"{header}\nScore: {chunk.score:.4f}\n{chunk.text}")
         return context_blocks

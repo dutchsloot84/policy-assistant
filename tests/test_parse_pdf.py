@@ -42,18 +42,39 @@ def _make_pdf_bytes(text: str) -> bytes:
 
 def test_extract_text_from_pdf():
     pdf_bytes = _make_pdf_bytes("Policy Document")
-    text = extract_text_from_pdf(pdf_bytes)
+    text, page_breaks = extract_text_from_pdf(pdf_bytes)
     assert "Policy Document" in text
+    assert page_breaks == [0]
 
 
 def test_extract_text_empty_bytes():
-    assert extract_text_from_pdf(b"") == ""
+    assert extract_text_from_pdf(b"") == ("", [])
 
 
 def test_extract_text_pdfminer_fallback(monkeypatch):
-    monkeypatch.setattr(parse_pdf, "_extract_with_pypdf", lambda _bytes: "")
+    monkeypatch.setattr(parse_pdf, "_extract_with_pypdf", lambda _bytes: [])
     monkeypatch.setattr(parse_pdf, "_extract_with_pdfminer", lambda _bytes: " fallback text ")
 
-    text = extract_text_from_pdf(b"pdf-bytes", filename="document.pdf")
+    text, page_breaks = extract_text_from_pdf(b"pdf-bytes", filename="document.pdf")
 
     assert text == "fallback text"
+    assert page_breaks == [0]
+
+
+def test_extract_text_ocr_fallback(monkeypatch):
+    monkeypatch.setattr(parse_pdf, "_extract_with_pypdf", lambda _bytes: [])
+    monkeypatch.setattr(parse_pdf, "_extract_with_pdfminer", lambda _bytes: "")
+
+    calls = []
+
+    def _fake_ocr(bytes_in: bytes, *, filename=None):
+        calls.append((bytes_in, filename))
+        return [" ocr text "]
+
+    monkeypatch.setattr(parse_pdf, "_extract_with_ocr", _fake_ocr)
+
+    text, page_breaks = extract_text_from_pdf(b"pdf-bytes", filename="ocr.pdf")
+
+    assert text == "ocr text"
+    assert page_breaks == [0]
+    assert calls == [(b"pdf-bytes", "ocr.pdf")]

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import os
 import pickle
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, List, Sequence
+from typing import Dict, Iterable, List, Sequence
 
 import faiss  # type: ignore
 import numpy as np
@@ -25,6 +25,9 @@ class Metadata:
     chunk_id: str
     text: str
     source: str
+    page_start: int | None = None
+    page_end: int | None = None
+    fields: Dict[str, str] = field(default_factory=dict)
 
 
 class FaissVectorStore:

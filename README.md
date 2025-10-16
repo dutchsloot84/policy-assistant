@@ -18,12 +18,25 @@ with minimal changes.
 7. A cost guard enforces rate limits, exponential backoff, token budgets, and a simple
    circuit breaker to avoid runaway API usage.
 
+### Table-aware chunking & field extractor
+
+- PDF text is normalized with `normalize_for_chunking` so carriage returns become newlines,
+  tabs become spaces, and table columns keep a hint of padding instead of collapsing into a
+  single run of words.
+- Default chunking now favours dense schedules: 550-character max chunks with 90-character
+  overlap (still overridable via environment variables) to keep labels and numeric values in
+  the same chunk.
+- During ingest we run lightweight regexes to capture policy numbers, estimated total
+  premiums, and inception premiums. These values are stored in chunk metadata, surfaced to the
+  historian, and used to answer common questions without invoking the chat model.
+
 ## Cost controls
 
 - Low-cost default models (`text-embedding-3-small`, `gpt-4o-mini`).
 - Dedupe identical chunks before embedding and cache vectors on disk.
 - Batched embedding requests (default batch size 64) with strict rate limiting.
 - Per-chunk embedding guardrail configurable via `MAX_EMBED_TOKENS` (default 6000 tokens).
+- Text chunking defaults adjustable via `CHUNK_MAX_CHARS` and `CHUNK_OVERLAP` (defaults 550/90).
 - Temperature 0.2 and max tokens 300 for concise answers.
 - Circuit breaker that halts requests after repeated failures.
 - No secrets or sensitive data logged; basic PII redaction available on retrieved context.
@@ -49,6 +62,19 @@ Open http://localhost:8501 to access the Streamlit UI.
 3. The response includes citations by filename and chunk id. Expand the "Retrieved context"
    panel to see snippets and scores.
 
+### Chunking configuration
+
+- `CHUNK_MAX_CHARS` sets the upper bound for chunk size. Reducing it creates shorter,
+  sentence-aware snippets that improve recall for dense or structured content such as policy
+  tables, bullet lists, or numbered clauses where relevant details are tightly scoped.
+- `CHUNK_OVERLAP` preserves trailing context between adjacent chunks. Increase it when
+  important fields span multiple sentences; decrease it for highly structured text to avoid
+  redundant embeddings.
+
+Fine-tuning these values can increase retrieval quality for structured fields by ensuring the
+retriever surfaces the precise clause or table row that matches a query instead of a large
+composite chunk.
+
 ## Historian (Audit Trail)
 
 - Every successful ingest and query is appended to a local JSONL ledger with timestamps,
@@ -69,6 +95,10 @@ Open http://localhost:8501 to access the Streamlit UI.
   `ocrmypdf`) before ingesting.
 - **Rate limit errors:** Increase `RATE_LIMIT_RPS` cautiously or wait and retry. The
   circuit breaker will reopen after the reset timeout.
+- **Corporate TLS proxy / self-signed certs:** Set `OPENAI_CA_BUNDLE`,
+  `REQUESTS_CA_BUNDLE`, or `SSL_CERT_FILE` in `.env` (or the process environment) to the
+  path of your trusted PEM bundle before starting the API so the OpenAI client can verify
+  TLS handshakes.
 - **Empty answer:** Ensure the PDF produced text and that the query is relevant. Check the
   retrieved context for coverage.
 - **Embeddings re-run on same PDF:** Ensure the file contents have not changed. The cache

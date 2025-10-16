@@ -83,6 +83,16 @@ developer laptop. All timestamps should use the America/Phoenix timezone for con
    PY
    ```
 
+### Confirm field extraction
+
+1. After ingesting a policy, open the **History** tab in the Streamlit UI and locate the
+   matching ingest event. A `Note` marker reading `Extracted fields: …` confirms regex hits.
+2. Run `pwsh -File ./scripts/Dev.ps1 hist-snapshot` to export the latest events and verify the
+   structured values without opening the JSONL manually.
+3. If regex patterns are updated, remove the affected document from the FAISS store (see
+   "Rebuilding the FAISS index") and re-upload the PDF so fresh metadata and historian notes
+   are captured.
+
 ### Handling API rate limits
 
 - Rate limiter defaults to 2 RPS. Adjust `RATE_LIMIT_RPS` cautiously.

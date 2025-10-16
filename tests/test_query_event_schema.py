@@ -7,8 +7,22 @@ from src.historian.schema import Marker, QueryEvent, RetrievalHit
 
 def test_query_event_serialization() -> None:
     hits = [
-        RetrievalHit(source="doc1.pdf", chunk_id="111aaa", score=0.75, preview="alpha"),
-        RetrievalHit(source="doc2.pdf", chunk_id="222bbb", score=0.55, preview="beta"),
+        RetrievalHit(
+            source="doc1.pdf",
+            chunk_id="111aaa",
+            score=0.75,
+            preview="alpha",
+            page_start=1,
+            page_end=1,
+        ),
+        RetrievalHit(
+            source="doc2.pdf",
+            chunk_id="222bbb",
+            score=0.55,
+            preview="beta",
+            page_start=2,
+            page_end=3,
+        ),
     ]
     event = QueryEvent(
         query="What is the deductible?",
@@ -30,7 +44,7 @@ def test_query_event_serialization() -> None:
     assert isinstance(payload["hits"], list)
     assert len(payload["hits"]) == 2
     for hit in payload["hits"]:
-        assert set(hit) >= {"source", "chunk_id", "score", "preview"}
+        assert set(hit) >= {"source", "chunk_id", "score", "preview", "page_start", "page_end"}
         assert isinstance(hit["score"], float)
     assert payload["markers"][0]["type"] == "Decision"
     assert payload["latency_ms"] == 987

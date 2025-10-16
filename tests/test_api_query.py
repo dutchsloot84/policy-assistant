@@ -36,6 +36,8 @@ def client(tmp_path, monkeypatch):
                 chunk_id="chunk-1",
                 text="Policy content",
                 source="doc.pdf",
+                page_start=1,
+                page_end=1,
             )
         ],
     )
@@ -50,3 +52,4 @@ def test_query_endpoint(client):
     payload = response.json()
     assert payload["answer"] == "Answer with citations"
     assert payload["sources"][0]["chunk_id"] == "chunk-1"
+    assert payload["sources"][0]["page_start"] == 1
